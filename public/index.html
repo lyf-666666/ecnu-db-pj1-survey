@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>登录 - 问卷调查系统</title>
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+  <div class="center-page">
+    <div class="card login-card">
+      <h1>问卷调查系统</h1>
+      <p class="muted" style="margin-bottom:18px;">登录后可以创建问卷，也可以填写别人分享的问卷。</p>
+
+      <div class="tabs">
+        <button type="button" id="tab-login" class="active">登录</button>
+        <button type="button" id="tab-register">注册</button>
+      </div>
+
+      <form id="login-form">
+        <div class="field">
+          <label>用户名</label>
+          <input type="text" name="username" autocomplete="username" required>
+        </div>
+        <div class="field">
+          <label>密码</label>
+          <input type="password" name="password" autocomplete="current-password" required>
+        </div>
+        <button type="submit" style="width:100%;">登录</button>
+      </form>
+
+      <form id="register-form" hidden>
+        <div class="field">
+          <label>用户名</label>
+          <input type="text" name="username" autocomplete="username" placeholder="3-20 位字母、数字、下划线或汉字" required>
+        </div>
+        <div class="field">
+          <label>密码</label>
+          <input type="password" name="password" autocomplete="new-password" placeholder="至少 6 位" required>
+        </div>
+        <div class="field">
+          <label>确认密码</label>
+          <input type="password" name="confirm" autocomplete="new-password" required>
+        </div>
+        <button type="submit" style="width:100%;">注册并登录</button>
+      </form>
+
+      <div id="msg" class="error"></div>
+    </div>
+  </div>
+
+  <script src="/js/common.js"></script>
+  <script src="/js/login.js"></script>
+</body>
+</html>

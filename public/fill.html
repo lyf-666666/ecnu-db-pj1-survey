@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>填写问卷 - 问卷调查系统</title>
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+  <div class="topbar">
+    <a class="brand" href="/dashboard.html">问卷<span>系统</span></a>
+    <div class="right">
+      <a href="/dashboard.html">我的问卷</a>
+    </div>
+  </div>
+
+  <div class="container">
+    <div class="card" id="survey-card">
+      <div class="muted" id="progress">加载中...</div>
+      <h1 id="title" style="margin-top:8px;">...</h1>
+      <div class="muted" id="description"></div>
+      <div class="muted" id="deadline"></div>
+    </div>
+
+    <div class="card" id="question-card">
+      <div id="question-area"><div class="empty">加载中...</div></div>
+      <div id="error" class="error"></div>
+      <div style="margin-top:18px;display:flex;gap:10px;flex-wrap:wrap;">
+        <button type="button" id="next-btn">下一题</button>
+        <button type="button" id="skip-btn" class="secondary" hidden>跳过此题</button>
+      </div>
+    </div>
+
+    <div class="card" id="confirm-card" hidden>
+      <h2>确认提交</h2>
+      <p class="muted" id="confirm-text"></p>
+      <label id="anonymous-row" style="font-weight:normal;margin:14px 0;" hidden>
+        <input type="checkbox" id="anonymous-check"> 匿名提交（不记录我的账号）
+      </label>
+      <div id="submit-error" class="error"></div>
+      <button type="button" id="submit-btn" style="margin-top:10px;">提交问卷</button>
+    </div>
+
+    <div class="card" id="done-card" hidden>
+      <h2>提交成功</h2>
+      <p class="muted" id="done-text">感谢填写。</p>
+      <div style="margin-top:14px;display:flex;gap:10px;flex-wrap:wrap;">
+        <a id="again-link" href="#">再填一份</a>
+        <a href="/dashboard.html">返回我的问卷</a>
+      </div>
+    </div>
+  </div>
+
+  <script src="/js/common.js"></script>
+  <script src="/js/fill.js"></script>
+</body>
+</html>

@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>我的问卷 - 问卷调查系统</title>
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+  <div class="topbar">
+    <a class="brand" href="/dashboard.html">问卷<span>系统</span></a>
+    <div class="right">
+      <span id="username" class="muted"></span>
+      <a href="/dashboard.html">我的问卷</a>
+      <button type="button" class="link" id="logout">退出</button>
+    </div>
+  </div>
+
+  <div class="container">
+    <div class="card">
+      <h2>新建问卷</h2>
+      <form id="create-form">
+        <div class="field">
+          <label>问卷标题</label>
+          <input type="text" name="title" maxlength="80" required placeholder="例如：课程学习情况调查">
+        </div>
+        <div class="field">
+          <label>问卷说明（可不填）</label>
+          <textarea name="description" maxlength="1000" placeholder="简单说明一下填写目的"></textarea>
+        </div>
+        <div class="row">
+          <div class="field">
+            <label>截止时间（可不填）</label>
+            <input type="datetime-local" name="deadline">
+          </div>
+          <div class="field">
+            <label>填写设置</label>
+            <label style="font-weight:normal;">
+              <input type="checkbox" name="allowAnonymous"> 允许匿名填写
+            </label>
+          </div>
+        </div>
+        <button type="submit">创建问卷</button>
+        <span id="create-msg" class="error"></span>
+      </form>
+    </div>
+
+    <div class="card">
+      <h2>我的问卷</h2>
+      <div id="list"><div class="empty">加载中...</div></div>
+    </div>
+  </div>
+
+  <script src="/js/common.js"></script>
+  <script src="/js/dashboard.js"></script>
+</body>
+</html>

@@ -1,0 +1,21 @@
+{
+  "name": "survey-mongodb",
+  "version": "1.0.0",
+  "description": "基于 MongoDB 的简化在线问卷系统（课程大作业第一阶段）",
+  "main": "src/server.js",
+  "scripts": {
+    "start": "node src/server.js",
+    "init-db": "node scripts/init-db.js",
+    "test": "node --test tests/api.test.js"
+  },
+  "dependencies": {
+    "dotenv": "^16.4.5",
+    "express": "^4.19.2",
+    "express-session": "^1.18.0",
+    "mongodb": "^6.8.0"
+  },
+  "devDependencies": {
+    "mongodb-memory-server": "^10.0.0",
+    "supertest": "^7.0.0"
+  }
+}
