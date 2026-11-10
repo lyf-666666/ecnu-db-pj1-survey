@@ -195,4 +195,10 @@ function normalizeQuestion(payload, existingQuestions, selfId) {
   return { ok: true, doc };
 }
 
-module.exports = { normalizeQuestion };
+// 题库里的题目不带跳转规则。跳转是“某份问卷内部”的排版关系，
+// 一旦把题目复用到别的问卷，原来的目标题号就没有意义了。
+function normalizeContent(payload) {
+  return normalizeQuestion({ ...(payload || {}), jumps: [] }, [], null);
+}
+
+module.exports = { normalizeQuestion, normalizeContent };

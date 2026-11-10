@@ -10,7 +10,8 @@
   <div class="topbar">
     <a class="brand" href="/dashboard.html">问卷<span>系统</span></a>
     <div class="right">
-      <a href="/dashboard.html">返回我的问卷</a>
+      <a href="/dashboard.html">我的问卷</a>
+      <a href="/questions">题目库</a>
     </div>
   </div>
 
@@ -67,12 +68,35 @@
     </div>
 
     <div class="card">
-      <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;">
+      <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;">
         <h2 style="margin:0;">题目列表</h2>
-        <button type="button" id="new-question-btn">添加题目</button>
+        <div style="display:flex;gap:8px;">
+          <button type="button" class="secondary" id="pick-question-btn">从题库添加</button>
+          <button type="button" id="new-question-btn">添加题目</button>
+        </div>
       </div>
-      <div id="lock-hint" class="hint" hidden>问卷已经发布，题目不能再修改。如需调整题目，可以新建一份问卷。</div>
+      <div id="lock-hint" class="hint" hidden>问卷已经发布，题目不能再修改。需要换题目的话，只能新建一份问卷。</div>
       <div id="question-list" style="margin-top:14px;"><div class="empty">加载中...</div></div>
+    </div>
+
+    <div class="card" id="picker-card" hidden>
+      <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;">
+        <h2 style="margin:0;">从题库添加</h2>
+        <button type="button" class="secondary" id="close-picker">收起</button>
+      </div>
+      <div class="hint" style="margin-top:6px;">选一个版本加进这份问卷。加进来之后，题库再改也不会影响这里。</div>
+      <div class="row" style="margin-top:12px;">
+        <div class="field" style="flex:2;">
+          <input type="text" id="picker-search" placeholder="搜索题目">
+        </div>
+        <div class="field" style="flex:1;">
+          <select id="picker-scope">
+            <option value="mine">我的题目</option>
+            <option value="shared">共享给我</option>
+          </select>
+        </div>
+      </div>
+      <div id="picker-list"><div class="empty">加载中...</div></div>
     </div>
 
     <div class="card" id="editor-card" hidden>
@@ -158,6 +182,7 @@
           <button type="button" class="secondary" id="cancel-edit" hidden>取消编辑</button>
           <span id="question-msg" class="error"></span>
         </div>
+        <div class="hint" id="version-hint" hidden>这道题已经进入题库。保存修改会生成一个新版本，其他问卷仍然用它们自己的旧版本。</div>
       </form>
     </div>
   </div>

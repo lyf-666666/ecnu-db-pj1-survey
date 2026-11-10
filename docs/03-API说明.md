@@ -189,9 +189,28 @@
 
 `targetQuestionId` 必须是同一问卷中已经存在的题目，不能指向自己。选项条件的 key 必须属于这道题的选项。
 
+除了直接写题目内容，也可以从题目库引用：
+
+```json
+{
+  "rootId": "题目本体id",
+  "versionId": "某一版的id",
+  "required": true,
+  "jumps": []
+}
+```
+
+`versionId` 不传就用最新版。不管用哪种方式添加，服务端都会给这道题建一个 root 和 v1，也就是说手写的题目同样会进入题目库。
+
 ### PUT /api/surveys/:id/questions/:qid
 
 整体替换题目配置，请求体和添加题目相同。题目 id、所属问卷、order 不变。只有草稿状态能改。
+
+如果这道题在题库里有 root，并且内容真的变了，服务端会生成一个新版本，把这道题指过去。其他问卷用的是它们各自的版本，不受影响。只改 `required` 或 `jumps` 不会产生新版本。
+
+### POST /api/surveys/:id/questions/:qid/sync
+
+把这道题切换到题库里的最新版本，只有草稿能用。已经是最新版本时返回 400。切换后原跳转规则会被清空，因为选项编号可能已经变了。
 
 ### DELETE /api/surveys/:id/questions/:qid
 
@@ -287,12 +306,179 @@
 { "stat": { "questionId": "...", "answered": 2, "options": [] } }
 ```
 
-## 3.5 页面路由
+## 3.5 题目库
+
+以下接口都要求登录。题目分“拥有”和“被共享”两种权限：拥有者能改，被共享者只能用。
+
+### GET /api/questions
+
+参数：
+
+| 参数 | 说明 |
+| --- | --- |
+| `scope` | `mine`（默认）或 `shared` |
+| `keyword` | 按标题模糊匹配，可选 |
+| `bankId` | 只看某个题库里的题，可选 |
+
+返回：
+
+```json
+{
+  "questions": [
+    {
+      "rootId": "…",
+      "versionId": "…",
+      "versionNo": 2,
+      "title": "你常用的编程语言",
+      "type": "single",
+      "options": [],
+      "ownerName": "李雨霏",
+      "isOwner": true,
+      "sharedWithCount": 0,
+      "usageCount": 2,
+      "updatedAt": "2026-11-09T09:00:00.000Z"
+    }
+  ]
+}
+```
+
+`usageCount` 是“当前用户名下有几份问卷用了这道题”，不是全站使用次数。
+
+### POST /api/questions
+
+```json
+{
+  "type": "single",
+  "title": "你常用的编程语言",
+  "options": [{ "label": "Java" }, { "label": "Python" }],
+  "changeNote": "新建"
+}
+```
+
+返回 201：`{ "rootId": "…", "versionId": "…", "versionNo": 1 }`。
+
+可选传 `bankIds: ["…"]`，创建后直接放进这些题库。
+
+### GET /api/questions/:rootId
+
+返回详情，包含当前版本、全部版本、使用情况和题库归属。
+
+```json
+{
+  "root": { "_id": "…", "isOwner": true, "latestVersionNo": 3, "sharedWith": [] },
+  "current": { "title": "…", "type": "single", "options": [] },
+  "versions": [
+    { "_id": "…", "versionNo": 1, "parentVersionId": null, "source": "create", "title": "…" },
+    { "_id": "…", "versionNo": 2, "parentVersionId": "v1的id", "source": "fork", "title": "…" }
+  ],
+  "usage": [
+    { "surveyTitle": "课程评价", "surveyStatus": "published", "versionNo": 2, "isMine": true }
+  ],
+  "banks": []
+}
+```
+
+没有权限返回 403，题目不存在返回 404。
+
+### PUT /api/questions/:rootId
+
+修改题目内容，生成新版本。请求体和 POST 相同，可带 `changeNote`。只有创建者能调。
+
+返回：`{ "versionId": "…", "versionNo": 4 }`。
+
+### POST /api/questions/:rootId/versions
+
+基于某个历史版本另起一个新版本，用于“同一道题的不同版本同时存在”的场景。
+
+```json
+{
+  "parentVersionId": "v2的id",
+  "type": "single",
+  "title": "换了问法的版本",
+  "options": [{ "label": "A" }, { "label": "B" }]
+}
+```
+
+### POST /api/questions/:rootId/versions/:versionId/restore
+
+恢复历史版本。不会删掉任何版本，而是用旧内容生成一个新版本，`source` 记为 `restore`，`parentVersionId` 指向被恢复的那一版。
+
+### POST /api/questions/:rootId/share
+
+```json
+{ "username": "student02" }
+```
+
+用户不存在返回 404，共享给自己返回 400。
+
+### DELETE /api/questions/:rootId/share/:userId
+
+取消共享。
+
+### GET /api/questions/:rootId/stats
+
+跨问卷的单题统计，只汇总当前用户名下的问卷。
+
+```json
+{
+  "root": { "title": "你常用的编程语言", "type": "single", "versionNo": 3 },
+  "answered": 12,
+  "surveyCount": 2,
+  "surveys": [{ "title": "课程评价", "status": "published", "versionNo": 2, "answered": 8 }],
+  "options": [{ "label": "Java", "count": 7, "percent": 58.3 }],
+  "number": { "count": 0, "avg": null, "min": null, "max": null },
+  "texts": [],
+  "versions": [{ "versionNo": 2, "answered": 8 }, { "versionNo": 3, "answered": 4 }]
+}
+```
+
+不同版本的选项编号可能不一样，所以统计按选项文字合并。如果某个版本的选项文字被改过，会被当成两个选项，这是这种合并方式的已知限制。
+
+## 3.6 题库
+
+### GET /api/banks
+
+返回当前用户的题库和里面的题目数。
+
+### POST /api/banks
+
+```json
+{ "name": "课程评价常用题", "description": "可选" }
+```
+
+名称 1 到 40 字，说明最多 200 字。
+
+### GET /api/banks/:id
+
+返回题库和按加入时间倒序的题目列表（每题带最新版本）。
+
+### PUT /api/banks/:id
+
+改名称或说明，传哪个改哪个。
+
+### DELETE /api/banks/:id
+
+删除题库和它的 `bank_items`。题目本身不会被删除。
+
+### POST /api/banks/:id/items
+
+```json
+{ "rootId": "题目本体id" }
+```
+
+重复加入同一道题不会报错，也不会产生两条记录。
+
+### DELETE /api/banks/:id/items/:rootId
+
+把题目移出题库。
+
+## 3.7 页面路由
 
 | 路径 | 页面 |
 | --- | --- |
 | `/` | 登录注册 |
 | `/dashboard.html` | 我的问卷 |
+| `/questions` | 题目库与题库 |
 | `/surveys/:id/edit` | 问卷编辑 |
 | `/survey/:id` | 填写问卷 |
 | `/surveys/:id/stats` | 统计结果 |

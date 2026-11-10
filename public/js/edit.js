@@ -60,7 +60,11 @@ function renderSurvey() {
   const draft = survey.status === 'draft';
   document.getElementById('lock-hint').hidden = draft;
   document.getElementById('new-question-btn').hidden = !draft;
-  if (!draft) editorCard.hidden = true;
+  document.getElementById('pick-question-btn').hidden = !draft;
+  if (!draft) {
+    editorCard.hidden = true;
+    document.getElementById('picker-card').hidden = true;
+  }
 }
 
 function constraintsText(q) {
@@ -109,8 +113,11 @@ function renderQuestions() {
       : '';
     const extras = constraintsText(q);
     const jump = jumpSummary(q);
+    const version = q.versionNo ? ' · v' + q.versionNo : '';
+    const newer = draft && q.versionNo && q.latestVersionNo && q.latestVersionNo > q.versionNo;
     const ops = draft
       ? `<div class="ops">
+           ${newer ? `<button type="button" class="link" data-sync="${q._id}">更新到 v${q.latestVersionNo}</button>` : ''}
            <button type="button" class="link" data-edit="${q._id}">编辑</button>
            <button type="button" class="link" data-delete="${q._id}" style="color:#dc2626;">删除</button>
          </div>`
@@ -121,7 +128,7 @@ function renderQuestions() {
         <div class="head">
           <div>
             <div class="title">第 ${q.order} 题　${esc(q.title)}</div>
-            <div class="sub">${typeName(q.type)}${q.required ? ' · 必答' : ' · 选答'}${extras ? ' · ' + extras : ''}</div>
+            <div class="sub">${typeName(q.type)}${q.required ? ' · 必答' : ' · 选答'}${version}${extras ? ' · ' + extras : ''}</div>
             ${options}
             ${jump ? '<div class="sub">' + esc(jump) + '</div>' : ''}
           </div>
@@ -129,6 +136,18 @@ function renderQuestions() {
         </div>
       </div>`;
   }).join('');
+
+  listEl.querySelectorAll('[data-sync]').forEach((btn) => {
+    btn.addEventListener('click', async () => {
+      if (!confirm('把这道题换成题库里的最新版本？原来的跳转规则会被清空，需要重新设置。')) return;
+      try {
+        await api('/api/surveys/' + surveyId + '/questions/' + btn.dataset.sync + '/sync', { method: 'POST' });
+        await load();
+      } catch (err) {
+        alert(err.message);
+      }
+    });
+  });
 
   listEl.querySelectorAll('[data-edit]').forEach((btn) => {
     btn.addEventListener('click', () => {
@@ -353,6 +372,7 @@ function openEditor(question) {
   questionForm.elements.title.value = question ? question.title : '';
   questionForm.elements.required.checked = question ? question.required : true;
   typeSelect.value = question ? question.type : 'single';
+  document.getElementById('version-hint').hidden = !(question && question.versionNo);
 
   renderOptions(question ? question.options : null);
 
@@ -382,6 +402,7 @@ function resetEditor() {
   optionRows.innerHTML = '';
   jumpRows.innerHTML = '';
   questionMsg.textContent = '';
+  document.getElementById('version-hint').hidden = true;
   editorCard.hidden = true;
 }
 
@@ -497,6 +518,92 @@ document.getElementById('copy-link').addEventListener('click', async () => {
   btn.textContent = '已复制';
   setTimeout(() => { btn.textContent = '复制链接'; }, 1500);
 });
+
+const pickerCard = document.getElementById('picker-card');
+const pickerList = document.getElementById('picker-list');
+
+function debounce(fn, wait) {
+  let timer = null;
+  return function () {
+    clearTimeout(timer);
+    timer = setTimeout(fn, wait);
+  };
+}
+
+async function loadPicker() {
+  pickerList.innerHTML = '<div class="empty">加载中...</div>';
+  const params = new URLSearchParams();
+  params.set('scope', document.getElementById('picker-scope').value);
+  const keyword = document.getElementById('picker-search').value.trim();
+  if (keyword) params.set('keyword', keyword);
+
+  try {
+    const data = await api('/api/questions?' + params.toString());
+    const items = data.questions.slice(0, 30);
+    if (items.length === 0) {
+      pickerList.innerHTML = '<div class="empty">没有可用的题目，先去题目库建一道</div>';
+      return;
+    }
+
+    // 列表接口只带最新版本，这里补一次详情，方便挑历史版本
+    const details = await Promise.all(
+      items.map((item) => api('/api/questions/' + item.rootId).catch(() => null))
+    );
+
+    pickerList.innerHTML = items.map((item, index) => {
+      const detail = details[index];
+      const versions = detail ? detail.versions : [];
+      const options = versions
+        .slice()
+        .reverse()
+        .map((version) => `<option value="${version._id}"${version.versionNo === item.versionNo ? ' selected' : ''}>v${version.versionNo}${version.versionNo === item.versionNo ? '（最新）' : ''}</option>`)
+        .join('');
+      return `
+        <div class="question-item">
+          <div class="head">
+            <div>
+              <div class="title">${esc(item.title)}</div>
+              <div class="sub">${typeName(item.type)} · 最新 v${item.versionNo}${item.isOwner ? '' : ' · 来自 ' + esc(item.ownerName || '其他用户')}</div>
+            </div>
+            <div class="ops">
+              <select data-version="${item.rootId}" style="min-width:110px;">${options}</select>
+              <button type="button" class="secondary" data-add="${item.rootId}">加入</button>
+            </div>
+          </div>
+        </div>`;
+    }).join('');
+
+    pickerList.querySelectorAll('[data-add]').forEach((btn) => {
+      btn.addEventListener('click', async () => {
+        const rootId = btn.dataset.add;
+        const select = pickerList.querySelector('[data-version="' + rootId + '"]');
+        btn.disabled = true;
+        try {
+          await api('/api/surveys/' + surveyId + '/questions', {
+            method: 'POST',
+            body: { rootId, versionId: select ? select.value : undefined }
+          });
+          await load();
+          pickerCard.hidden = true;
+        } catch (err) {
+          alert(err.message);
+          btn.disabled = false;
+        }
+      });
+    });
+  } catch (err) {
+    pickerList.innerHTML = '<div class="empty">' + esc(err.message) + '</div>';
+  }
+}
+
+document.getElementById('pick-question-btn').addEventListener('click', async () => {
+  pickerCard.hidden = false;
+  pickerCard.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  await loadPicker();
+});
+document.getElementById('close-picker').addEventListener('click', () => { pickerCard.hidden = true; });
+document.getElementById('picker-scope').addEventListener('change', loadPicker);
+document.getElementById('picker-search').addEventListener('input', debounce(loadPicker, 300));
 
 async function load() {
   const data = await api('/api/surveys/' + surveyId);

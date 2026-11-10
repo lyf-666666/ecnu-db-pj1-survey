@@ -6,6 +6,8 @@ const authRoutes = require('./routes/auth');
 const surveyRoutes = require('./routes/surveys');
 const publicRoutes = require('./routes/public-surveys');
 const statsRoutes = require('./routes/stats');
+const questionRoutes = require('./routes/questions');
+const bankRoutes = require('./routes/banks');
 
 function createApp() {
   const app = express();
@@ -29,6 +31,8 @@ function createApp() {
   app.use('/api/auth', authRoutes);
   app.use('/api/surveys', surveyRoutes);
   app.use('/api/surveys', statsRoutes);
+  app.use('/api/questions', questionRoutes);
+  app.use('/api/banks', bankRoutes);
   app.use('/api/public/surveys', publicRoutes);
 
   app.use(express.static(path.join(__dirname, '..', 'public')));
@@ -41,6 +45,9 @@ function createApp() {
   });
   app.get('/surveys/:id/stats', (req, res) => {
     res.sendFile(path.join(__dirname, '..', 'public', 'stats.html'));
+  });
+  app.get('/questions', (req, res) => {
+    res.sendFile(path.join(__dirname, '..', 'public', 'questions.html'));
   });
 
   app.use('/api', (req, res) => {
